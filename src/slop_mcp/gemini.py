@@ -9,6 +9,7 @@ import urllib.request
 from typing import Any, Literal, cast
 
 from .models import EntropyBundle, PROJECT_FORMATS, ProjectFormat, SlopBrief
+from .safety import SAFETY_DISTILLATION_RULES, looks_sensitive
 from .schema import SLOP_BRIEF_RESPONSE_SCHEMA
 from .util import clamp_int, slugify
 
@@ -134,12 +135,14 @@ def build_prompt(
 
 Your job:
 - Transform random source text into one strange but buildable software project.
-- Use real details from the sources, but remix them hard.
+- Use ideas from the sources, but remix them hard.
 - Avoid generic startup ideas, productivity dashboards, and bland portfolio pages.
 - The result must be feasible for Codex or Claude Code to build in one focused pass.
 - Make it weird at chaos level {chaos}/10 while still coherent.
 - Use project format: {project_format}.
 - {theme_line}
+
+{SAFETY_DISTILLATION_RULES}
 
 Return only JSON matching the schema.
 
@@ -162,10 +165,18 @@ def format_sources(entropy: EntropyBundle) -> str:
     if entropy["sources"]:
         blocks = []
         for index, source in enumerate(entropy["sources"], start=1):
+            sensitive_note = ""
+            if looks_sensitive(f"{source['title']} {source['extract']}"):
+                sensitive_note = (
+                    "\nSAFETY NOTE: This source appears to contain severe real-world harm "
+                    "or extremist/hateful material. Use only abstract non-harmful structure "
+                    "from it; do not center the generated project on the harmful content."
+                )
             blocks.append(
                 f"SOURCE {index}: {source['title']}\n"
                 f"URL: {source['url']}\n"
                 f"TEXT: {source['extract']}"
+                f"{sensitive_note}"
             )
         return "\n\n".join(blocks)
 
@@ -176,7 +187,15 @@ def format_sources(entropy: EntropyBundle) -> str:
 
 
 def normalize_brief(brief: SlopBrief, *, project_format: ProjectFormat, chaos: int) -> SlopBrief:
-    slug = slugify(brief.get("slug") or brief.get("title") or "")
+    title = brief.get("title") or "Slop Machine Project"
+    if looks_sensitive(title):
+        title = "Absurd Archive Control Panel"
+        brief["title"] = title
+
+    slug = slugify(brief.get("slug") or title)
+    if looks_sensitive(slug):
+        slug = slugify(title)
+
     brief["slug"] = slug
     brief["format"] = brief.get("format") if brief.get("format") in PROJECT_FORMATS else project_format
     brief["chaos"] = chaos
