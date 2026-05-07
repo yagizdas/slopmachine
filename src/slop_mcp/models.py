@@ -38,19 +38,24 @@ class EntropyBundle(TypedDict):
     generated_at: str
 
 
+class SourceInfluence(TypedDict):
+    source_title: str
+    extracted_signal: str
+    project_manifestation: str
+
+
 class SlopBrief(TypedDict):
     title: str
     slug: str
     format: ProjectFormat
     chaos: int
     output_dir: str
-    one_line_pitch: str
+    artifact_metaphor: str
     concept: str
-    source_influences: list[str]
+    source_influences: list[SourceInfluence]
+    fusion_mechanic: str
+    surprise_hook: str
     core_interaction: str
-    visual_direction: str
     suggested_stack: str
     build_constraints: list[str]
-    expected_files: list[str]
     done_criteria: list[str]
-    entropy_digest: str

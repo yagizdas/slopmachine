@@ -61,7 +61,12 @@ def generate_brief_with_gemini(
     response = post_json(url, payload)
     text = extract_gemini_text(response)
     brief = cast(SlopBrief, json.loads(text))
-    return normalize_brief(brief, project_format=chosen_format, chaos=chosen_chaos)
+    return normalize_brief(
+        brief,
+        project_format=chosen_format,
+        chaos=chosen_chaos,
+        entropy=entropy,
+    )
 
 
 def choose_format(project_format: ProjectFormat | Literal["random"]) -> ProjectFormat:
@@ -134,26 +139,41 @@ def build_prompt(
     return f"""You are Slop Machine, a semantic chaos distiller for coding agents.
 
 Your job:
-- Transform random source text into one strange but buildable software project.
+- Transform random source text into one strange but buildable software artifact.
 - Use ideas from the sources, but remix them hard.
-- Avoid generic startup ideas, productivity dashboards, and bland portfolio pages.
+- The output should feel like a discovered object from a tiny alternate internet, not a normal utility app.
+- Avoid the most literal or default software interpretation of the sources.
 - The result must be feasible for Codex or Claude Code to build in one focused pass.
 - Make it weird at chaos level {chaos}/10 while still coherent.
 - Use project format: {project_format}.
 - {theme_line}
+- Every source must visibly affect the final project. Do not let one source dominate while the others become decorative.
 
 {SAFETY_DISTILLATION_RULES}
 
 Return only JSON matching the schema.
 
+Creative selection process:
+- Privately imagine three possible projects.
+- Reject the most literal one.
+- Reject the one that merely combines nouns from the sources.
+- Output the one with the strongest central metaphor, clearest interaction, and most surprising buildable artifact.
+
 Important output rules:
 - output_dir must be "slop-output/<slug>".
+- title must be vivid and specific, not a generic software category with source nouns attached.
+- artifact_metaphor must name what the project feels like, for example "a courtroom for abandoned buttons" or "a weather station for guilty constellations".
+- concept must describe an actual first-screen experience, not a feature list.
 - suggested_stack should be small and practical.
 - For websites, games, art, tools, dashboards, apps, or simulations, prefer self-contained HTML/CSS/JS unless a different stack is clearly better.
 - For CLI format, prefer a no-dependency Python CLI.
 - build_constraints must include "Use no external network assets." and "Keep the first screen as the actual experience." when the format is visual.
-- done_criteria must include a local run/open criterion and a README criterion.
-- source_influences must mention concrete source details, not abstract vibes.
+- done_criteria must include a local run/open criterion and a README criterion, but keep the list compact.
+- source_influences must contain one object per source, using the exact source title, a concrete extracted signal, and the specific UI/mechanic/content manifestation in the project.
+- fusion_mechanic must explain the central design move that combines the sources into one artifact, not three unrelated references.
+- surprise_hook must describe one delightful behavior, reveal, state change, or rule inversion the builder can implement.
+- If a source seems hard to use, transform its structure into a mechanic, constraint, rhythm, interface pattern, or rule system.
+- Every format, including CLI, should have a vivid interaction loop rather than only a list of ordinary operations.
 
 Random semantic source material:
 
@@ -186,7 +206,13 @@ def format_sources(entropy: EntropyBundle) -> str:
     return "\n\n".join(blocks)
 
 
-def normalize_brief(brief: SlopBrief, *, project_format: ProjectFormat, chaos: int) -> SlopBrief:
+def normalize_brief(
+    brief: SlopBrief,
+    *,
+    project_format: ProjectFormat,
+    chaos: int,
+    entropy: EntropyBundle | None = None,
+) -> SlopBrief:
     title = brief.get("title") or "Slop Machine Project"
     if looks_sensitive(title):
         title = "Absurd Archive Control Panel"
@@ -200,4 +226,16 @@ def normalize_brief(brief: SlopBrief, *, project_format: ProjectFormat, chaos: i
     brief["format"] = brief.get("format") if brief.get("format") in PROJECT_FORMATS else project_format
     brief["chaos"] = chaos
     brief["output_dir"] = f"slop-output/{slug}"
+    brief.setdefault("artifact_metaphor", "a strange machine assembled from unrelated public records")
+    brief.setdefault("fusion_mechanic", "Blend each entropy source into one coherent interaction loop.")
+    brief.setdefault("surprise_hook", "A small state change reveals how the entropy sources are secretly connected.")
+
+    if entropy and entropy["sources"]:
+        expected_count = min(len(entropy["sources"]), 8)
+        influence_count = len(brief.get("source_influences", []))
+        if influence_count < expected_count:
+            raise RuntimeError(
+                "Gemini returned too few source_influences; each entropy source must have a mapping"
+            )
+
     return brief
