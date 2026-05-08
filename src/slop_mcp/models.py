@@ -14,6 +14,36 @@ ProjectFormat = Literal[
     "generative_art",
 ]
 
+Intent = Literal[
+    "funny_toy",
+    "useful_utility",
+    "educational_explainer",
+    "reference_browser",
+    "small_game",
+    "creative_instrument",
+    "simulation",
+    "developer_tool",
+    "map_explorer",
+    "data_converter",
+    "diagnostic_tool",
+    "fake_os_tool",
+]
+
+EnergyMode = Literal[
+    "frantic",
+    "cozy",
+    "competitive",
+    "tactical",
+    "mischievous",
+    "ceremonial",
+    "mechanical",
+    "elegant",
+    "meditative",
+    "practical",
+    "gross",
+    "bureaucratic",
+]
+
 PROJECT_FORMATS: tuple[ProjectFormat, ...] = (
     "website",
     "browser_game",
@@ -23,6 +53,36 @@ PROJECT_FORMATS: tuple[ProjectFormat, ...] = (
     "simulation",
     "micro_app",
     "generative_art",
+)
+
+INTENTS: tuple[Intent, ...] = (
+    "funny_toy",
+    "useful_utility",
+    "educational_explainer",
+    "reference_browser",
+    "small_game",
+    "creative_instrument",
+    "simulation",
+    "developer_tool",
+    "map_explorer",
+    "data_converter",
+    "diagnostic_tool",
+    "fake_os_tool",
+)
+
+ENERGY_MODES: tuple[EnergyMode, ...] = (
+    "frantic",
+    "cozy",
+    "competitive",
+    "tactical",
+    "mischievous",
+    "ceremonial",
+    "mechanical",
+    "elegant",
+    "meditative",
+    "practical",
+    "gross",
+    "bureaucratic",
 )
 
 
@@ -38,22 +98,18 @@ class EntropyBundle(TypedDict):
     generated_at: str
 
 
-class SourceInfluence(TypedDict):
-    source_title: str
-    extracted_signal: str
-    project_manifestation: str
-
-
 class SlopBrief(TypedDict):
     title: str
     slug: str
     format: ProjectFormat
     chaos: int
     output_dir: str
+    intent: Intent
+    energy_mode: EnergyMode
     artifact_metaphor: str
     concept: str
-    source_influences: list[SourceInfluence]
-    fusion_mechanic: str
+    primary_signal: str
+    supporting_signals: list[str]
     surprise_hook: str
     core_interaction: str
     suggested_stack: str

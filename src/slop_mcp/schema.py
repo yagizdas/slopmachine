@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .models import PROJECT_FORMATS
+from .models import ENERGY_MODES, INTENTS, PROJECT_FORMATS
 
 
 SLOP_BRIEF_RESPONSE_SCHEMA = {
@@ -11,32 +11,28 @@ SLOP_BRIEF_RESPONSE_SCHEMA = {
         "format": {"type": "STRING", "enum": list(PROJECT_FORMATS)},
         "chaos": {"type": "INTEGER", "minimum": 1, "maximum": 10},
         "output_dir": {"type": "STRING"},
+        "intent": {
+            "type": "STRING",
+            "enum": list(INTENTS),
+            "description": "The practical/experiential intent, such as funny toy, educational explainer, useful utility, game, reference tool, creative instrument, or simulation.",
+        },
+        "energy_mode": {
+            "type": "STRING",
+            "enum": list(ENERGY_MODES),
+            "description": "The tonal energy shaping the interaction, such as frantic, cozy, competitive, tactical, mischievous, ceremonial, mechanical, elegant, meditative, or practical.",
+        },
         "artifact_metaphor": {"type": "STRING"},
         "concept": {"type": "STRING"},
-        "source_influences": {
-            "type": "ARRAY",
-            "items": {
-                "type": "OBJECT",
-                "properties": {
-                    "source_title": {"type": "STRING"},
-                    "extracted_signal": {"type": "STRING"},
-                    "project_manifestation": {"type": "STRING"},
-                },
-                "required": [
-                    "source_title",
-                    "extracted_signal",
-                    "project_manifestation",
-                ],
-                "propertyOrdering": [
-                    "source_title",
-                    "extracted_signal",
-                    "project_manifestation",
-                ],
-            },
-            "minItems": 3,
-            "maxItems": 8,
+        "primary_signal": {
+            "type": "STRING",
+            "description": "The dominant transferable force, pattern, or mechanic used for the core interaction.",
         },
-        "fusion_mechanic": {"type": "STRING"},
+        "supporting_signals": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "minItems": 1,
+            "maxItems": 4,
+        },
         "surprise_hook": {"type": "STRING"},
         "core_interaction": {"type": "STRING"},
         "suggested_stack": {"type": "STRING"},
@@ -59,10 +55,12 @@ SLOP_BRIEF_RESPONSE_SCHEMA = {
         "format",
         "chaos",
         "output_dir",
+        "intent",
+        "energy_mode",
         "artifact_metaphor",
         "concept",
-        "source_influences",
-        "fusion_mechanic",
+        "primary_signal",
+        "supporting_signals",
         "surprise_hook",
         "core_interaction",
         "suggested_stack",
@@ -75,10 +73,12 @@ SLOP_BRIEF_RESPONSE_SCHEMA = {
         "format",
         "chaos",
         "output_dir",
+        "intent",
+        "energy_mode",
         "artifact_metaphor",
         "concept",
-        "source_influences",
-        "fusion_mechanic",
+        "primary_signal",
+        "supporting_signals",
         "surprise_hook",
         "core_interaction",
         "suggested_stack",

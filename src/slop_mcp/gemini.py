@@ -8,7 +8,16 @@ import urllib.parse
 import urllib.request
 from typing import Any, Literal, cast
 
-from .models import EntropyBundle, PROJECT_FORMATS, ProjectFormat, SlopBrief
+from .models import (
+    ENERGY_MODES,
+    INTENTS,
+    PROJECT_FORMATS,
+    EnergyMode,
+    EntropyBundle,
+    Intent,
+    ProjectFormat,
+    SlopBrief,
+)
 from .safety import SAFETY_DISTILLATION_RULES, looks_sensitive
 from .schema import SLOP_BRIEF_RESPONSE_SCHEMA
 from .util import clamp_int, slugify
@@ -30,6 +39,8 @@ def generate_brief_with_gemini(
         raise RuntimeError("GEMINI_API_KEY is required to generate Slop Machine briefs")
 
     chosen_format = choose_format(project_format)
+    chosen_intent = choose_intent()
+    chosen_energy_mode = choose_energy_mode()
     chosen_chaos = clamp_int(chaos, default=7, minimum=1, maximum=10)
     model = os.getenv("GEMINI_MODEL", DEFAULT_GEMINI_MODEL)
     url = build_gemini_url(model=model, api_key=api_key)
@@ -43,6 +54,8 @@ def generate_brief_with_gemini(
                         "text": build_prompt(
                             entropy,
                             project_format=chosen_format,
+                            intent=chosen_intent,
+                            energy_mode=chosen_energy_mode,
                             chaos=chosen_chaos,
                             user_theme=user_theme,
                         )
@@ -64,8 +77,9 @@ def generate_brief_with_gemini(
     return normalize_brief(
         brief,
         project_format=chosen_format,
+        intent=chosen_intent,
+        energy_mode=chosen_energy_mode,
         chaos=chosen_chaos,
-        entropy=entropy,
     )
 
 
@@ -75,6 +89,16 @@ def choose_format(project_format: ProjectFormat | Literal["random"]) -> ProjectF
 
     index = secrets.randbelow(len(PROJECT_FORMATS))
     return PROJECT_FORMATS[index]
+
+
+def choose_intent() -> Intent:
+    index = secrets.randbelow(len(INTENTS))
+    return INTENTS[index]
+
+
+def choose_energy_mode() -> EnergyMode:
+    index = secrets.randbelow(len(ENERGY_MODES))
+    return ENERGY_MODES[index]
 
 
 def build_gemini_url(*, model: str, api_key: str) -> str:
@@ -126,6 +150,8 @@ def build_prompt(
     entropy: EntropyBundle,
     *,
     project_format: ProjectFormat,
+    intent: Intent,
+    energy_mode: EnergyMode,
     chaos: int,
     user_theme: str | None,
 ) -> str:
@@ -143,11 +169,16 @@ Your job:
 - Use ideas from the sources, but remix them hard.
 - The output should feel like a discovered object from a tiny alternate internet, not a normal utility app.
 - Avoid the most literal or default software interpretation of the sources.
+- Distill sources into transferable forces before inventing the project: conflict, coordination, scarcity, repair, drift, escape, hierarchy, ritual, memory, ranking, decay, translation, disguise, pursuit, protection, or transformation.
+- Do not preserve historical, biographical, geographic, or academic context just because it appeared in the source. Keep that context only when it creates a stronger artifact.
+- Slop can be funny, useful, educational, beautiful, annoying, practical, or game-like. Do not assume it must be silly or purely artistic.
 - The result must be feasible for Codex or Claude Code to build in one focused pass.
 - Make it weird at chaos level {chaos}/10 while still coherent.
 - Use project format: {project_format}.
+- Use product intent: {intent}.
+- Use energy mode: {energy_mode}.
 - {theme_line}
-- Every source must visibly affect the final project. Do not let one source dominate while the others become decorative.
+- Use the sources as raw entropy. Pick one dominant signal for the core interaction. Use other signals only when they improve clarity, texture, or surprise.
 
 {SAFETY_DISTILLATION_RULES}
 
@@ -157,22 +188,29 @@ Creative selection process:
 - Privately imagine three possible projects.
 - Reject the most literal one.
 - Reject the one that merely combines nouns from the sources.
-- Output the one with the strongest central metaphor, clearest interaction, and most surprising buildable artifact.
+- Output the one with the best balance of surprise, clarity, and usefulness for its chosen intent.
 
 Important output rules:
 - output_dir must be "slop-output/<slug>".
+- intent must be exactly "{intent}".
+- energy_mode must be exactly "{energy_mode}".
 - title must be vivid and specific, not a generic software category with source nouns attached.
 - artifact_metaphor must name what the project feels like, for example "a courtroom for abandoned buttons" or "a weather station for guilty constellations".
-- concept must describe an actual first-screen experience, not a feature list.
+- concept must describe an actual first-screen experience in one clear paragraph, not a feature list.
+- concept should be based on the distilled forces and interaction patterns, not a museum-like restaging of the source topics.
+- primary_signal must be the single force or pattern that drives the core interaction.
+- supporting_signals must be short notes for optional flavor, constraints, tone, or surprise. Do not force every source into the project.
+- The user's action should create pressure, consequence, progress, insight, or genuinely useful output, not only produce decoration.
+- The generated project must include a small orientation element that helps the user understand what they can do without over-explaining the joke.
+- Include subtle Slop Machine attribution somewhere in the artifact, such as "Generated by Slop Machine" or an in-world equivalent.
 - suggested_stack should be small and practical.
 - For websites, games, art, tools, dashboards, apps, or simulations, prefer self-contained HTML/CSS/JS unless a different stack is clearly better.
-- For CLI format, prefer a no-dependency Python CLI.
+- For CLI format, prefer a no-dependency Python CLI. CLI artifacts should open with a brief in-world intro and provide help text.
 - build_constraints must include "Use no external network assets." and "Keep the first screen as the actual experience." when the format is visual.
 - done_criteria must include a local run/open criterion and a README criterion, but keep the list compact.
-- source_influences must contain one object per source, using the exact source title, a concrete extracted signal, and the specific UI/mechanic/content manifestation in the project.
-- fusion_mechanic must explain the central design move that combines the sources into one artifact, not three unrelated references.
 - surprise_hook must describe one delightful behavior, reveal, state change, or rule inversion the builder can implement.
 - If a source seems hard to use, transform its structure into a mechanic, constraint, rhythm, interface pattern, or rule system.
+- The final idea should be understandable in one sentence. Prefer one strong loop over a complex fusion of all sources.
 - Every format, including CLI, should have a vivid interaction loop rather than only a list of ordinary operations.
 
 Random semantic source material:
@@ -210,8 +248,9 @@ def normalize_brief(
     brief: SlopBrief,
     *,
     project_format: ProjectFormat,
+    intent: Intent,
+    energy_mode: EnergyMode,
     chaos: int,
-    entropy: EntropyBundle | None = None,
 ) -> SlopBrief:
     title = brief.get("title") or "Slop Machine Project"
     if looks_sensitive(title):
@@ -226,16 +265,11 @@ def normalize_brief(
     brief["format"] = brief.get("format") if brief.get("format") in PROJECT_FORMATS else project_format
     brief["chaos"] = chaos
     brief["output_dir"] = f"slop-output/{slug}"
+    brief["intent"] = brief.get("intent") if brief.get("intent") in INTENTS else intent
+    brief["energy_mode"] = brief.get("energy_mode") if brief.get("energy_mode") in ENERGY_MODES else energy_mode
     brief.setdefault("artifact_metaphor", "a strange machine assembled from unrelated public records")
-    brief.setdefault("fusion_mechanic", "Blend each entropy source into one coherent interaction loop.")
+    brief.setdefault("primary_signal", "one clear interaction loop distilled from random public text")
+    brief.setdefault("supporting_signals", [])
     brief.setdefault("surprise_hook", "A small state change reveals how the entropy sources are secretly connected.")
-
-    if entropy and entropy["sources"]:
-        expected_count = min(len(entropy["sources"]), 8)
-        influence_count = len(brief.get("source_influences", []))
-        if influence_count < expected_count:
-            raise RuntimeError(
-                "Gemini returned too few source_influences; each entropy source must have a mapping"
-            )
 
     return brief
